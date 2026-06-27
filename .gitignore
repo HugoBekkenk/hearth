@@ -1,0 +1,4 @@
+.idea/
+rust/.idea/
+rust/target/
+godot/.godot/

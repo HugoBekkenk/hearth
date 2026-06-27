@@ -1,0 +1,16 @@
+[configuration]
+entry_symbol = "gdext_rust_init"
+compatibility_minimum = 4.3
+reloadable = true
+
+[libraries]
+linux.debug.x86_64 = "res://../rust/target/debug/libhearth.so"
+linux.release.x86_64 = "res://../rust/target/release/libhearth.so"
+windows.debug.x86_64 = "res://../rust/target/debug/hearth.dll"
+windows.release.x86_64 = "res://../rust/target/release/hearth.dll"
+macos.debug = "res://../rust/target/debug/libhearth.dylib"
+macos.release = "res://../rust/target/release/libhearth.dylib"
+macos.debug.arm64 = "res://../rust/target/debug/libhearth.dylib"
+macos.release.arm64 = "res://../rust/target/release/libhearth.dylib"
+web.debug.wasm32 = "res://../rust/target/wasm32-unknown-emscripten/debug/hearth.wasm"
+web.release.wasm32 = "res://../rust/target/wasm32-unknown-emscripten/release/hearth.wasm"
