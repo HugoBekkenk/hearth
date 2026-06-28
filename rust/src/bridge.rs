@@ -1,11 +1,14 @@
-use crate::game::creature::{BehaviorState, Creature, Direction, MovementState};
-use crate::game::vec2::Vec2;
+use crate::game::creature::{BehaviorState, Creature, MovementState};
+use crate::game::direction::Direction;
+use crate::game::world::World;
+use crate::game::grid_pos::GridPos;
 use godot::prelude::*;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
 struct HearthBridge {
     base: Base<Node>,
+    pub world: World,
     pub creatures: Vec<Creature>,
     pub selected_creatures: Vec<u32>,
     pub next_id: u32,
@@ -17,6 +20,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
+            world: World::new(50, 50),
             creatures: vec![],
             selected_creatures: vec![],
             next_id: 0,
@@ -54,11 +58,9 @@ impl HearthBridge {
 
     #[func]
     pub fn get_creature_position(&mut self, id: u32) -> Vector2 {
+        let tile_size = self.world.tile_size;
         if let Some(creature) = self.find_creature(id) {
-            Vector2 {
-                x: creature.position.x,
-                y: creature.position.y,
-            }
+            Self::grid_to_world(&creature.position, tile_size)
         } else {
             godot_error!("Creature with id {} not found", id);
             Vector2::ZERO
@@ -77,12 +79,10 @@ impl HearthBridge {
     #[func]
     pub fn set_creature_target(&mut self, target: Vector2) {
         let ids: Vec<u32> = self.selected_creatures.clone();
+        let tile_size = self.world.tile_size;
         for creature_id in ids {
             if let Some(creature) = self.find_creature(creature_id) {
-                creature.target = Vec2 {
-                    x: target.x,
-                    y: target.y,
-                };
+                creature.target = Self::world_to_grid(target, tile_size);
                 creature.behavior_state = BehaviorState::BeingOrdered;
             }
         }
@@ -109,7 +109,21 @@ impl HearthBridge {
 
 // private functions
 impl HearthBridge {
-    fn find_creature(&mut self, id: u32) -> Option<&mut Creature> {
+    pub(crate) fn find_creature(&mut self, id: u32) -> Option<&mut Creature> {
         self.creatures.iter_mut().find(|c| c.id == id)
+    }
+
+    fn world_to_grid(pos: Vector2, tile_size: i32) -> GridPos {
+        GridPos {
+            x: (pos.x / tile_size as f32) as i32,
+            y: (pos.y / tile_size as f32) as i32,
+        }
+    }
+
+    fn grid_to_world(pos: &GridPos, tile_size: i32) -> Vector2 {
+        Vector2 {
+            x: (pos.x * tile_size) as f32,
+            y: (pos.y * tile_size) as f32,
+        }
     }
 }

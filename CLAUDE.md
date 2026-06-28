@@ -12,7 +12,7 @@ This project is a long-term, passion-driven game inspired by the tribal phase of
 - New playthroughs can optionally take place in the same persistent world, allowing encounters with species from previous runs
 - Playstyle is emergent from species build — a carnivore with high aggression plays fundamentally differently from a peaceful herbivore trader
 
-This is a long-term vision. The immediate scope is always the smallest slice that still feels alive.
+This is a long-term vision. The immediate scope is always the smallest slice that still feels alive. also be sure to look at DESIGN.md for how the eventual game is supposed to work, if it's relevant.
 
 ---
 
@@ -106,7 +106,7 @@ This project is a **learning experience**. The goal is not just to build the gam
 - **Do not give full implementations unprompted.** If a function needs writing, give hints, ask guiding questions, and let the developer arrive at the solution.
 - **Prefer questions over answers.** "What do you think this function should return?" is more valuable than writing the function.
 - **Give partial examples** when a concept needs illustration — enough to point in the right direction, not enough to copy-paste blindly.
-- **Explain the why**, not just the what. If suggesting a pattern, explain the reasoning behind it.
+- **Explain the why**, not just the what. If suggesting a pattern, explain the reasoning behind it. When the developer hits a Rust-specific concept (borrowing, lifetimes, ownership, traits), always explain the underlying rule first before giving the fix — the fix alone teaches nothing.
 - **Let mistakes happen and be discovered.** If the developer's approach will cause a problem, hint at the issue rather than immediately correcting it.
 - **Celebrate understanding.** When the developer figures something out themselves, acknowledge it.
 
