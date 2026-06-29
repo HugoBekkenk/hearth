@@ -1,5 +1,7 @@
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
+use crate::game::tile_content::TileContent;
+use crate::game::world::World;
 use rand::RngExt;
 
 pub struct Creature {
@@ -89,7 +91,7 @@ impl Creature {
         self.position == self.target
     }
 
-    pub fn move_towards_target(&mut self, delta: f32) {
+    pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
         self.movement_timer -= delta;
         if self.movement_timer <= 0.0 {
             let x_bias = self.target.x - self.position.x;
@@ -108,9 +110,19 @@ impl Creature {
                     direction = Direction::Up
                 }
             }
-            self.position = self.position.step(&direction);
-            self.movement_state = MovementState::Moving(direction);
-            self.movement_timer = 1.0 / self.config.speed;
+            let potential_positon = self.position.step(&direction);
+            if world.is_walkable(&potential_positon) {
+                world.tiles.insert(self.position, TileContent::Empty);
+                self.position = potential_positon;
+                world
+                    .tiles
+                    .insert(potential_positon, TileContent::Creature(self.id));
+                self.movement_state = MovementState::Moving(direction);
+                self.movement_timer = 1.0 / self.config.speed;
+            } else {
+                self.target = self.position;
+                self.movement_timer = 1.0 / self.config.speed;
+            }
         }
     }
 }

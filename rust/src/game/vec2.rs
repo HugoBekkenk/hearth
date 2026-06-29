@@ -1,8 +1,10 @@
+#[allow(dead_code)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
 }
 
+#[allow(dead_code)]
 impl Vec2 {
     pub fn length(&self) -> f32 {
         (self.x.powf(2.0) + self.y.powf(2.0)).sqrt()

@@ -25,8 +25,8 @@ impl World {
         }
     }
 
-    pub fn is_walkable(&self, grid_pos: GridPos) -> bool {
-        if let Some(tile) = self.tiles.get(&grid_pos)
+    pub fn is_walkable(&self, grid_pos: &GridPos) -> bool {
+        if let Some(tile) = self.tiles.get(grid_pos)
             && *tile == TileContent::Empty
         {
             return true;

@@ -20,7 +20,8 @@ func _unhandled_input(event):
 
 func spawn_creature():
 	var creature_id = bridge.spawn_creature()
-	var creature = creature_scenes.pick_random().instantiate()
-	creature.id = creature_id
-	creature.bridge = bridge
-	add_child(creature)
+	if creature_id > 0:
+		var creature = creature_scenes.pick_random().instantiate()
+		creature.id = creature_id
+		creature.bridge = bridge
+		add_child(creature)

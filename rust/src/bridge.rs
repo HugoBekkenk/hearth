@@ -1,7 +1,8 @@
 use crate::game::creature::{BehaviorState, Creature, MovementState};
 use crate::game::direction::Direction;
-use crate::game::world::World;
 use crate::game::grid_pos::GridPos;
+use crate::game::tile_content::TileContent;
+use crate::game::world::World;
 use godot::prelude::*;
 
 #[derive(GodotClass)]
@@ -34,7 +35,7 @@ impl INode for HearthBridge {
     fn process(&mut self, delta: f64) {
         for creature in self.creatures.iter_mut() {
             if !creature.is_at_target() {
-                creature.move_towards_target(delta as f32)
+                creature.move_towards_target(delta as f32, &mut self.world)
             } else if creature.behavior_state == BehaviorState::Wandering {
                 creature.wander(delta as f32)
             } else {
@@ -48,12 +49,21 @@ impl INode for HearthBridge {
 #[godot_api]
 impl HearthBridge {
     #[func]
-    pub fn spawn_creature(&mut self) -> u32 {
+    pub fn spawn_creature(&mut self) -> i64 {
+        let spawn_position = GridPos { x: 0, y: 0 };
         let current_id = self.next_id;
-        let new_creature = Creature::new(self.next_id);
-        self.creatures.push(new_creature);
-        self.next_id += 1;
-        current_id
+        if self.world.is_walkable(&spawn_position) {
+            let new_creature = Creature::new(self.next_id);
+            self.creatures.push(new_creature);
+            self.world
+                .tiles
+                .insert(spawn_position, TileContent::Creature(current_id));
+            self.next_id += 1;
+            current_id as i64
+        } else {
+            godot_warn!("Spawn position is already taken");
+            -1
+        }
     }
 
     #[func]

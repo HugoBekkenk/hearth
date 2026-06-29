@@ -1,9 +1,9 @@
 use crate::game::direction::Direction;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Copy, Clone)]
 pub struct GridPos {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl GridPos {
