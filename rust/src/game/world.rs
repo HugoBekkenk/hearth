@@ -10,7 +10,7 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(width: i32, height: i32) -> Self {
+    pub fn new(width: i32, height: i32, tile_size: i32) -> Self {
         let mut tiles = HashMap::new();
         for x in 0..width {
             for y in 0..height {
@@ -20,7 +20,7 @@ impl World {
         World {
             width,
             height,
-            tile_size: 32,
+            tile_size,
             tiles,
         }
     }

@@ -21,7 +21,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(50, 30),
+            world: World::new(50, 30, 32),
             creatures: vec![],
             selected_creatures: vec![],
             next_id: 0,
@@ -88,12 +88,14 @@ impl HearthBridge {
 
     #[func]
     pub fn set_creature_target(&mut self, target: Vector2) {
-        let ids: Vec<u32> = self.selected_creatures.clone();
-        let tile_size = self.world.tile_size;
-        for creature_id in ids {
-            if let Some(creature) = self.find_creature(creature_id) {
-                creature.target = Self::world_to_grid(target, tile_size);
-                creature.behavior_state = BehaviorState::BeingOrdered;
+        let grid_target = Self::world_to_grid(target, self.world.tile_size);
+        if self.world.is_walkable(&grid_target) {
+            let ids: Vec<u32> = self.selected_creatures.clone();
+            for creature_id in ids {
+                if let Some(creature) = self.find_creature(creature_id) {
+                    creature.target = grid_target;
+                    creature.behavior_state = BehaviorState::BeingOrdered;
+                }
             }
         }
     }

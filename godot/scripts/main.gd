@@ -19,7 +19,7 @@ func _ready() -> void:
 func _draw():
 	for x in range(world_width):
 		for y in range(world_height):
-			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), Color.AQUAMARINE, false)  # false = outline only
+			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), Color.AQUAMARINE, false)
 
 func _unhandled_input(event):
 	if event is InputEventKey:
@@ -31,7 +31,7 @@ func _unhandled_input(event):
 
 func spawn_creature():
 	var creature_id = bridge.spawn_creature()
-	if creature_id > 0:
+	if creature_id >= 0:
 		var creature = creature_scenes.pick_random().instantiate()
 		creature.id = creature_id
 		creature.bridge = bridge
