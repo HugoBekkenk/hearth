@@ -6,9 +6,20 @@ var creature_scenes = [
 	preload("res://scenes/creatures/ginger_cat.tscn"),
 	preload("res://scenes/creatures/white_cat.tscn"),
 ]
+var world_width
+var world_height
+var tile_size
 
 func _ready() -> void:
 	spawn_creature()
+	world_width = bridge.get_world_width()
+	world_height = bridge.get_world_height()
+	tile_size = bridge.get_tile_size()
+
+func _draw():
+	for x in range(world_width):
+		for y in range(world_height):
+			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), Color.AQUAMARINE, false)  # false = outline only
 
 func _unhandled_input(event):
 	if event is InputEventKey:

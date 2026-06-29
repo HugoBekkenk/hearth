@@ -21,7 +21,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(50, 50),
+            world: World::new(50, 30),
             creatures: vec![],
             selected_creatures: vec![],
             next_id: 0,
@@ -115,6 +115,21 @@ impl HearthBridge {
             "idle".into()
         }
     }
+
+    #[func]
+    pub fn get_world_width(&self) -> i32 {
+        self.world.width
+    }
+
+    #[func]
+    pub fn get_world_height(&self) -> i32 {
+        self.world.height
+    }
+
+    #[func]
+    pub fn get_tile_size(&self) -> i32 {
+        self.world.tile_size
+    }
 }
 
 // private functions
@@ -131,9 +146,10 @@ impl HearthBridge {
     }
 
     fn grid_to_world(pos: &GridPos, tile_size: i32) -> Vector2 {
+        let half = tile_size / 2;
         Vector2 {
-            x: (pos.x * tile_size) as f32,
-            y: (pos.y * tile_size) as f32,
+            x: ((pos.x * tile_size) + half) as f32,
+            y: ((pos.y * tile_size) + half) as f32,
         }
     }
 }
