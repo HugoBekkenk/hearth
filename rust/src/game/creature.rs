@@ -1,11 +1,14 @@
-use crate::game::vec2::Vec2;
+use crate::game::direction::Direction;
+use crate::game::grid_pos::GridPos;
+use crate::game::tile_content::TileContent;
+use crate::game::world::World;
 use rand::RngExt;
-use std::f64::consts::PI;
 
 pub struct Creature {
     pub id: u32,
-    pub position: Vec2,
-    pub target: Vec2,
+    pub position: GridPos,
+    pub target: GridPos,
+    pub movement_timer: f32,
     pub wander_timer: f32,
     pub behavior_state: BehaviorState,
     pub movement_state: MovementState,
@@ -14,11 +17,10 @@ pub struct Creature {
 
 pub struct CreatureConfig {
     pub speed: f32,
-    pub acceptance_radius: f32,
     pub min_wander_wait: f32,
     pub max_wander_wait: f32,
-    pub min_wander_distance: f64,
-    pub max_wander_distance: f64,
+    pub min_wander_distance: i32,
+    pub max_wander_distance: i32,
 }
 
 #[derive(PartialEq)]
@@ -32,39 +34,45 @@ pub enum MovementState {
     Moving(Direction),
 }
 
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 impl Creature {
     pub fn new(id: u32) -> Self {
         Creature {
             id,
-            position: Vec2 { x: 0.0, y: 0.0 },
-            target: Vec2 { x: 0.0, y: 0.0 },
+            position: GridPos { x: 0, y: 0 },
+            target: GridPos { x: 0, y: 0 },
+            movement_timer: 0.0,
             wander_timer: 0.0,
             behavior_state: BehaviorState::Wandering,
             movement_state: MovementState::Idle,
             config: CreatureConfig {
-                speed: 100.0,
-                acceptance_radius: 5.0,
+                speed: 3.0,
                 min_wander_wait: 1.0,
                 max_wander_wait: 3.0,
-                min_wander_distance: 100.0,
-                max_wander_distance: 500.0,
+                min_wander_distance: 1,
+                max_wander_distance: 5,
             },
         }
     }
 
     pub fn choose_wander_target(&mut self) {
         let mut rng = rand::rng();
-        let angle = rng.random_range(0.0..(2.0 * PI));
-        let distance =
+        let wander_amount =
             rng.random_range(self.config.min_wander_distance..self.config.max_wander_distance);
-        self.target = self.position.point_in_direction(angle, distance);
+        let direction = match rng.random_range(0..4) {
+            0 => Direction::Up,
+            1 => Direction::Down,
+            2 => Direction::Left,
+            _ => Direction::Right,
+        };
+
+        let mut target_pos = GridPos {
+            x: self.position.x,
+            y: self.position.y,
+        };
+        for _ in 0..wander_amount {
+            target_pos = target_pos.step(&direction);
+        }
+        self.target = target_pos;
     }
 
     pub fn wander(&mut self, delta: f32) {
@@ -80,29 +88,41 @@ impl Creature {
     }
 
     pub fn is_at_target(&self) -> bool {
-        self.target.subtract(&self.position).length() < self.config.acceptance_radius
+        self.position == self.target
     }
 
-    pub fn move_towards_target(&mut self, delta: f32) {
-        let direction = self.target.subtract(&self.position);
-        let normalize_direction = direction.normalize();
-        let step = normalize_direction.scale(self.config.speed * delta);
-
-        let dir = if direction.x.abs() > direction.y.abs() {
-            if direction.x > 0.0 {
-                Direction::Right
+    pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
+        self.movement_timer -= delta;
+        if self.movement_timer <= 0.0 {
+            let x_bias = self.target.x - self.position.x;
+            let y_bias = self.target.y - self.position.y;
+            let direction: Direction;
+            if x_bias != 0 {
+                if x_bias > 0 {
+                    direction = Direction::Right
+                } else {
+                    direction = Direction::Left
+                }
             } else {
-                Direction::Left
+                if y_bias > 0 {
+                    direction = Direction::Down
+                } else {
+                    direction = Direction::Up
+                }
             }
-        } else {
-            if direction.y > 0.0 {
-                Direction::Down
+            let potential_positon = self.position.step(&direction);
+            if world.is_walkable(&potential_positon) {
+                world.tiles.insert(self.position, TileContent::Empty);
+                self.position = potential_positon;
+                world
+                    .tiles
+                    .insert(potential_positon, TileContent::Creature(self.id));
+                self.movement_state = MovementState::Moving(direction);
+                self.movement_timer = 1.0 / self.config.speed;
             } else {
-                Direction::Up
+                self.target = self.position;
+                self.movement_timer = 1.0 / self.config.speed;
             }
-        };
-
-        self.movement_state = MovementState::Moving(dir);
-        self.position = self.position.add(&step);
+        }
     }
 }
