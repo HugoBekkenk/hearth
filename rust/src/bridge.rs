@@ -1,8 +1,10 @@
 use crate::game::creature::{BehaviorState, Creature, MovementState};
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
+use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
+use godot::global::{randf_range, randi_range};
 use godot::prelude::*;
 
 #[derive(GodotClass)]
@@ -34,12 +36,15 @@ impl INode for HearthBridge {
 
     fn process(&mut self, delta: f64) {
         for creature in self.creatures.iter_mut() {
-            if !creature.is_at_target() {
+            if !creature.path.is_empty() {
                 creature.move_towards_target(delta as f32, &mut self.world)
             } else if creature.behavior_state == BehaviorState::Wandering {
-                creature.wander(delta as f32)
+                creature.wander(delta as f32, &self.world)
             } else {
                 creature.movement_state = MovementState::Idle;
+                if !self.selected_creatures.contains(&creature.id) {
+                    creature.behavior_state = BehaviorState::Wandering;
+                }
             }
         }
     }
@@ -50,10 +55,14 @@ impl INode for HearthBridge {
 impl HearthBridge {
     #[func]
     pub fn spawn_creature(&mut self) -> i64 {
-        let spawn_position = GridPos { x: 0, y: 0 };
+        let spawn_position = GridPos {
+            x: randi_range(0, self.world.width as i64) as i32,
+            y: randi_range(0, self.world.height as i64) as i32,
+        };
         let current_id = self.next_id;
         if self.world.is_walkable(&spawn_position) {
-            let new_creature = Creature::new(self.next_id);
+            let new_creature =
+                Creature::new(self.next_id, spawn_position, randf_range(3.0, 5.0) as f32);
             self.creatures.push(new_creature);
             self.world
                 .tiles
@@ -87,13 +96,27 @@ impl HearthBridge {
     }
 
     #[func]
+    pub fn select_all_creature(&mut self) {
+        for creature in self.creatures.iter_mut() {
+            if self.selected_creatures.contains(&creature.id) {
+                self.selected_creatures.retain(|&c| c != creature.id);
+            } else {
+                self.selected_creatures.push(creature.id);
+            }
+        }
+    }
+
+    #[func]
     pub fn set_creature_target(&mut self, target: Vector2) {
         let grid_target = Self::world_to_grid(target, self.world.tile_size);
         if self.world.is_walkable(&grid_target) {
             let ids: Vec<u32> = self.selected_creatures.clone();
+            let world = &self.world;
+            let creatures = &mut self.creatures;
             for creature_id in ids {
-                if let Some(creature) = self.find_creature(creature_id) {
-                    creature.target = grid_target;
+                if let Some(creature) = creatures.iter_mut().find(|c| c.id == creature_id) {
+                    creature.path =
+                        find_path(creature.position, grid_target, world).unwrap_or_default();
                     creature.behavior_state = BehaviorState::BeingOrdered;
                 }
             }

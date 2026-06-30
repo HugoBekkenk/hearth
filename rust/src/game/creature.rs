@@ -1,5 +1,6 @@
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
+use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
 use rand::RngExt;
@@ -7,7 +8,7 @@ use rand::RngExt;
 pub struct Creature {
     pub id: u32,
     pub position: GridPos,
-    pub target: GridPos,
+    pub path: Vec<GridPos>,
     pub movement_timer: f32,
     pub wander_timer: f32,
     pub behavior_state: BehaviorState,
@@ -35,17 +36,17 @@ pub enum MovementState {
 }
 
 impl Creature {
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: u32, position: GridPos, speed: f32) -> Self {
         Creature {
             id,
-            position: GridPos { x: 0, y: 0 },
-            target: GridPos { x: 0, y: 0 },
+            position,
+            path: vec![],
             movement_timer: 0.0,
             wander_timer: 0.0,
             behavior_state: BehaviorState::Wandering,
             movement_state: MovementState::Idle,
             config: CreatureConfig {
-                speed: 3.0,
+                speed,
                 min_wander_wait: 1.0,
                 max_wander_wait: 3.0,
                 min_wander_distance: 1,
@@ -54,7 +55,7 @@ impl Creature {
         }
     }
 
-    pub fn choose_wander_target(&mut self) {
+    pub fn choose_wander_target(&mut self, world: &World) {
         let mut rng = rand::rng();
         let wander_amount =
             rng.random_range(self.config.min_wander_distance..self.config.max_wander_distance);
@@ -70,15 +71,18 @@ impl Creature {
             y: self.position.y,
         };
         for _ in 0..wander_amount {
-            target_pos = target_pos.step(&direction);
+            let next_pos = target_pos.step(&direction);
+            if world.is_in_bound(&next_pos) {
+                target_pos = next_pos;
+            }
         }
-        self.target = target_pos;
+        self.path = find_path(self.position, target_pos, world).unwrap_or_default();
     }
 
-    pub fn wander(&mut self, delta: f32) {
+    pub fn wander(&mut self, delta: f32, world: &World) {
         self.wander_timer -= delta;
         if self.wander_timer <= 0.0 {
-            self.choose_wander_target();
+            self.choose_wander_target(world);
             let mut rng = rand::rng();
             self.wander_timer =
                 rng.random_range(self.config.min_wander_wait..self.config.max_wander_wait);
@@ -87,42 +91,45 @@ impl Creature {
         }
     }
 
-    pub fn is_at_target(&self) -> bool {
-        self.position == self.target
-    }
-
     pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
         self.movement_timer -= delta;
-        if self.movement_timer <= 0.0 {
-            let x_bias = self.target.x - self.position.x;
-            let y_bias = self.target.y - self.position.y;
-            let direction: Direction;
-            if x_bias != 0 {
-                if x_bias > 0 {
-                    direction = Direction::Right
-                } else {
-                    direction = Direction::Left
+        if self.movement_timer <= 0.0
+            && let Some(&next_tile) = self.path.first()
+        {
+            if !world.is_walkable(&next_tile) {
+                if let Some(available_goal) =
+                    world.find_nearest_walkable(*self.path.last().unwrap())
+                {
+                    self.path = find_path(self.position, available_goal, world).unwrap_or_default();
                 }
             } else {
-                if y_bias > 0 {
-                    direction = Direction::Down
+                let x_bias = next_tile.x - self.position.x;
+                let y_bias = next_tile.y - self.position.y;
+                let direction: Direction;
+                if x_bias != 0 {
+                    if x_bias > 0 {
+                        direction = Direction::Right
+                    } else {
+                        direction = Direction::Left
+                    }
                 } else {
-                    direction = Direction::Up
+                    if y_bias > 0 {
+                        direction = Direction::Down
+                    } else {
+                        direction = Direction::Up
+                    }
                 }
-            }
-            let potential_positon = self.position.step(&direction);
-            if world.is_walkable(&potential_positon) {
+
                 world.tiles.insert(self.position, TileContent::Empty);
-                self.position = potential_positon;
+                self.position = next_tile;
                 world
                     .tiles
-                    .insert(potential_positon, TileContent::Creature(self.id));
+                    .insert(next_tile, TileContent::Creature(self.id));
+
                 self.movement_state = MovementState::Moving(direction);
-                self.movement_timer = 1.0 / self.config.speed;
-            } else {
-                self.target = self.position;
-                self.movement_timer = 1.0 / self.config.speed;
+                self.path.remove(0);
             }
+            self.movement_timer = 1.0 / self.config.speed;
         }
     }
 }
