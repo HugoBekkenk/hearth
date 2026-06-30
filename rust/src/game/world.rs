@@ -33,4 +33,27 @@ impl World {
         }
         false
     }
+
+    pub fn find_nearest_walkable(&self, goal: GridPos) -> Option<GridPos> {
+        for distance in 1..4i32 {
+            for dx in -distance..=distance {
+                let dy = distance - dx.abs();
+                for candidate in [
+                    GridPos {
+                        x: goal.x + dx,
+                        y: goal.y + dy,
+                    },
+                    GridPos {
+                        x: goal.x + dx,
+                        y: goal.y - dy,
+                    },
+                ] {
+                    if self.is_walkable(&candidate) {
+                        return Some(candidate);
+                    }
+                }
+            }
+        }
+        None
+    }
 }

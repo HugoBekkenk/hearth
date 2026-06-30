@@ -4,6 +4,7 @@ use crate::game::grid_pos::GridPos;
 use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
+use godot::global::randf_range;
 use godot::prelude::*;
 
 #[derive(GodotClass)]
@@ -34,7 +35,6 @@ impl INode for HearthBridge {
     }
 
     fn process(&mut self, delta: f64) {
-        let world = &self.world;
         for creature in self.creatures.iter_mut() {
             if !creature.path.is_empty() {
                 creature.move_towards_target(delta as f32, &mut self.world)
@@ -55,7 +55,7 @@ impl HearthBridge {
         let spawn_position = GridPos { x: 0, y: 0 };
         let current_id = self.next_id;
         if self.world.is_walkable(&spawn_position) {
-            let new_creature = Creature::new(self.next_id);
+            let new_creature = Creature::new(self.next_id, randf_range(3.0, 5.0) as f32);
             self.creatures.push(new_creature);
             self.world
                 .tiles

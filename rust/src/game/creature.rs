@@ -36,7 +36,7 @@ pub enum MovementState {
 }
 
 impl Creature {
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: u32, speed: f32) -> Self {
         Creature {
             id,
             position: GridPos { x: 0, y: 0 },
@@ -46,7 +46,7 @@ impl Creature {
             behavior_state: BehaviorState::Wandering,
             movement_state: MovementState::Idle,
             config: CreatureConfig {
-                speed: 3.0,
+                speed,
                 min_wander_wait: 1.0,
                 max_wander_wait: 3.0,
                 min_wander_distance: 1,
@@ -88,46 +88,45 @@ impl Creature {
         }
     }
 
-    // pub fn is_at_target(&self) -> bool {
-    //     self.position == self.target
-    // }
-
     pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
         self.movement_timer -= delta;
-        if self.movement_timer <= 0.0 {
-            if let Some(&next_tile) = self.path.first() {
-                if !world.is_walkable(&next_tile) {
-                    self.path = find_path(self.position, *self.path.last().unwrap(), world)
-                        .unwrap_or_default();
-                } else {
-                    let x_bias = next_tile.x - self.position.x;
-                    let y_bias = next_tile.y - self.position.y;
-                    let direction: Direction;
-                    if x_bias != 0 {
-                        if x_bias > 0 {
-                            direction = Direction::Right
-                        } else {
-                            direction = Direction::Left
-                        }
-                    } else {
-                        if y_bias > 0 {
-                            direction = Direction::Down
-                        } else {
-                            direction = Direction::Up
-                        }
-                    }
-
-                    world.tiles.insert(self.position, TileContent::Empty);
-                    self.position = next_tile;
-                    world
-                        .tiles
-                        .insert(next_tile, TileContent::Creature(self.id));
-
-                    self.movement_state = MovementState::Moving(direction);
-                    self.path.remove(0);
+        if self.movement_timer <= 0.0
+            && let Some(&next_tile) = self.path.first()
+        {
+            if !world.is_walkable(&next_tile) {
+                if let Some(available_goal) =
+                    world.find_nearest_walkable(*self.path.last().unwrap())
+                {
+                    self.path = find_path(self.position, available_goal, world).unwrap_or_default();
                 }
-                self.movement_timer = 1.0 / self.config.speed;
+            } else {
+                let x_bias = next_tile.x - self.position.x;
+                let y_bias = next_tile.y - self.position.y;
+                let direction: Direction;
+                if x_bias != 0 {
+                    if x_bias > 0 {
+                        direction = Direction::Right
+                    } else {
+                        direction = Direction::Left
+                    }
+                } else {
+                    if y_bias > 0 {
+                        direction = Direction::Down
+                    } else {
+                        direction = Direction::Up
+                    }
+                }
+
+                world.tiles.insert(self.position, TileContent::Empty);
+                self.position = next_tile;
+                world
+                    .tiles
+                    .insert(next_tile, TileContent::Creature(self.id));
+
+                self.movement_state = MovementState::Moving(direction);
+                self.path.remove(0);
             }
+            self.movement_timer = 1.0 / self.config.speed;
         }
     }
 }
