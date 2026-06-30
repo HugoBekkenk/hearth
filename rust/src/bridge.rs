@@ -1,6 +1,7 @@
 use crate::game::creature::{BehaviorState, Creature, MovementState};
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
+use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
 use godot::prelude::*;
@@ -33,11 +34,12 @@ impl INode for HearthBridge {
     }
 
     fn process(&mut self, delta: f64) {
+        let world = &self.world;
         for creature in self.creatures.iter_mut() {
-            if !creature.is_at_target() {
+            if !creature.path.is_empty() {
                 creature.move_towards_target(delta as f32, &mut self.world)
             } else if creature.behavior_state == BehaviorState::Wandering {
-                creature.wander(delta as f32)
+                creature.wander(delta as f32, &self.world)
             } else {
                 creature.movement_state = MovementState::Idle;
             }
@@ -91,9 +93,12 @@ impl HearthBridge {
         let grid_target = Self::world_to_grid(target, self.world.tile_size);
         if self.world.is_walkable(&grid_target) {
             let ids: Vec<u32> = self.selected_creatures.clone();
+            let world = &self.world;
+            let creatures = &mut self.creatures;
             for creature_id in ids {
-                if let Some(creature) = self.find_creature(creature_id) {
-                    creature.target = grid_target;
+                if let Some(creature) = creatures.iter_mut().find(|c| c.id == creature_id) {
+                    creature.path =
+                        find_path(creature.position, grid_target, world).unwrap_or_default();
                     creature.behavior_state = BehaviorState::BeingOrdered;
                 }
             }
