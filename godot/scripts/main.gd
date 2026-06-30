@@ -25,6 +25,8 @@ func _unhandled_input(event):
 	if event is InputEventKey:
 		if event.keycode == KEY_C and event.pressed:
 			spawn_creature()
+		if event.keycode == KEY_X and event.pressed:
+			bridge.select_all_creature()
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			bridge.set_creature_target(get_global_mouse_position())
@@ -35,4 +37,5 @@ func spawn_creature():
 		var creature = creature_scenes.pick_random().instantiate()
 		creature.id = creature_id
 		creature.bridge = bridge
+		creature.position = bridge.get_creature_position(creature_id)
 		add_child(creature)
