@@ -96,32 +96,37 @@ impl Creature {
         self.movement_timer -= delta;
         if self.movement_timer <= 0.0 {
             if let Some(&next_tile) = self.path.first() {
-                let x_bias = next_tile.x - self.position.x;
-                let y_bias = next_tile.y - self.position.y;
-                let direction: Direction;
-                if x_bias != 0 {
-                    if x_bias > 0 {
-                        direction = Direction::Right
-                    } else {
-                        direction = Direction::Left
-                    }
+                if !world.is_walkable(&next_tile) {
+                    self.path = find_path(self.position, *self.path.last().unwrap(), world)
+                        .unwrap_or_default();
                 } else {
-                    if y_bias > 0 {
-                        direction = Direction::Down
+                    let x_bias = next_tile.x - self.position.x;
+                    let y_bias = next_tile.y - self.position.y;
+                    let direction: Direction;
+                    if x_bias != 0 {
+                        if x_bias > 0 {
+                            direction = Direction::Right
+                        } else {
+                            direction = Direction::Left
+                        }
                     } else {
-                        direction = Direction::Up
+                        if y_bias > 0 {
+                            direction = Direction::Down
+                        } else {
+                            direction = Direction::Up
+                        }
                     }
+
+                    world.tiles.insert(self.position, TileContent::Empty);
+                    self.position = next_tile;
+                    world
+                        .tiles
+                        .insert(next_tile, TileContent::Creature(self.id));
+
+                    self.movement_state = MovementState::Moving(direction);
+                    self.path.remove(0);
                 }
-
-                world.tiles.insert(self.position, TileContent::Empty);
-                self.position = next_tile;
-                world
-                    .tiles
-                    .insert(next_tile, TileContent::Creature(self.id));
-
-                self.movement_state = MovementState::Moving(direction);
                 self.movement_timer = 1.0 / self.config.speed;
-                self.path.remove(0);
             }
         }
     }
