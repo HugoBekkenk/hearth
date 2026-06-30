@@ -36,10 +36,10 @@ pub enum MovementState {
 }
 
 impl Creature {
-    pub fn new(id: u32, speed: f32) -> Self {
+    pub fn new(id: u32, position: GridPos, speed: f32) -> Self {
         Creature {
             id,
-            position: GridPos { x: 0, y: 0 },
+            position,
             path: vec![],
             movement_timer: 0.0,
             wander_timer: 0.0,
@@ -71,7 +71,10 @@ impl Creature {
             y: self.position.y,
         };
         for _ in 0..wander_amount {
-            target_pos = target_pos.step(&direction);
+            let next_pos = target_pos.step(&direction);
+            if world.is_in_bound(&next_pos) {
+                target_pos = next_pos;
+            }
         }
         self.path = find_path(self.position, target_pos, world).unwrap_or_default();
     }

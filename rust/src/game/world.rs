@@ -34,6 +34,10 @@ impl World {
         false
     }
 
+    pub fn is_in_bound(&self, grid_pos: &GridPos) -> bool {
+        grid_pos.x >= 0 && grid_pos.x < self.width && grid_pos.y >= 0 && grid_pos.y < self.height
+    }
+
     pub fn find_nearest_walkable(&self, goal: GridPos) -> Option<GridPos> {
         for distance in 1..4i32 {
             for dx in -distance..=distance {
