@@ -14,7 +14,7 @@ impl Timer {
     pub fn is_complete(&self) -> bool {
         self.duration <= 0.0
     }
-    
+
     pub fn reset(&mut self, new_duration: f32) {
         self.duration = new_duration
     }

@@ -88,7 +88,7 @@ fn queue_neighbor(
 }
 
 fn is_better_path(path_cost: &HashMap<GridPos, i32>, step: &GridPos, tentative_cost: i32) -> bool {
-    !path_cost.contains_key(&step) || tentative_cost < path_cost[&step]
+    !path_cost.contains_key(step) || tentative_cost < path_cost[step]
 }
 
 fn reconstruct_path(
