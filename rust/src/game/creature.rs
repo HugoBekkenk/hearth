@@ -1,17 +1,18 @@
-use rand::prelude::ThreadRng;
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
 use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
+use crate::game::timer::Timer;
 use crate::game::world::World;
 use rand::RngExt;
+use rand::prelude::ThreadRng;
 
 pub struct Creature {
     pub id: u32,
     pub position: GridPos,
     pub path: Vec<GridPos>,
-    pub movement_timer: f32,
-    pub wander_timer: f32,
+    pub movement_timer: Timer,
+    pub wander_timer: Timer,
     pub behavior_state: BehaviorState,
     pub movement_state: MovementState,
     pub config: CreatureConfig,
@@ -43,8 +44,8 @@ impl Creature {
             id,
             position,
             path: vec![],
-            movement_timer: 0.0,
-            wander_timer: 0.0,
+            movement_timer: Timer::new(0.0),
+            wander_timer: Timer::new(0.0),
             behavior_state: BehaviorState::Wandering,
             movement_state: MovementState::Idle,
             config: CreatureConfig {
@@ -57,7 +58,34 @@ impl Creature {
         }
     }
 
-    pub fn choose_wander_target(&mut self, world: &World) {
+    pub fn wander(&mut self, delta: f32, world: &World) {
+        self.wander_timer.tick_down(delta);
+        if self.wander_timer.is_complete() {
+            self.choose_wander_target(world);
+            self.wander_timer.reset(self.calculate_wander_delay());
+        } else {
+            self.movement_state = MovementState::Idle;
+        }
+    }
+
+    pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
+        self.movement_timer.tick_down(delta);
+        if self.movement_timer.is_complete()
+            && let Some(&next_tile) = self.path.first()
+        {
+            if !world.is_walkable(&next_tile) {
+                self.repath_around_obstacle(world);
+            } else {
+                self.step_to(world, next_tile);
+            }
+            self.movement_timer.reset(self.calculate_movement_delay());
+        }
+    }
+}
+
+// Private helpers
+impl Creature {
+    fn choose_wander_target(&mut self, world: &World) {
         let mut rng = rand::rng();
         let wander_distance = self.random_wander_distance(&mut rng);
         let direction = Self::random_direction(&mut rng);
@@ -69,37 +97,10 @@ impl Creature {
                 target_pos = next_pos;
             }
         }
-        self.find_path(&world, target_pos);
+        self.update_path(world, target_pos);
     }
 
-    pub fn wander(&mut self, delta: f32, world: &World) {
-        self.tick_down_wander_timer(delta);
-        if self.wander_timer_is_complete() {
-            self.choose_wander_target(world);
-            self.reset_wander_timer(&mut rand::rng());
-        } else {
-            self.movement_state = MovementState::Idle;
-        }
-    }
-
-    pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
-        self.tick_down_movement_timer(delta);
-        if self.movement_timer_is_complete()
-            && let Some(&next_tile) = self.path.first()
-        {
-            if !world.is_walkable(&next_tile) {
-                self.repath_around_obstacle(world);
-            } else {
-                self.step_to(world, next_tile);
-            }
-            self.reset_movement_timer();
-        }
-    }
-}
-
-// Private helpers
-impl Creature {
-    fn random_wander_distance(&mut self, rng: &mut ThreadRng) -> i32 {
+    fn random_wander_distance(&self, rng: &mut ThreadRng) -> i32 {
         rng.random_range(self.config.min_wander_distance..self.config.max_wander_distance)
     }
 
@@ -112,7 +113,7 @@ impl Creature {
         }
     }
 
-    fn vacant_tile(&mut self, world: &mut World) {
+    fn vacant_tile(&self, world: &mut World) {
         world.tiles.insert(self.position, TileContent::Empty);
     }
 
@@ -123,28 +124,16 @@ impl Creature {
             .insert(next_tile, TileContent::Creature(self.id));
     }
 
-    fn reset_movement_timer(&mut self) {
-        self.movement_timer = 1.0 / self.config.speed;
-    }
-
     fn direction_to(&self, next_tile: GridPos) -> Direction {
         let x_bias = next_tile.x - self.position.x;
         let y_bias = next_tile.y - self.position.y;
-        let direction: Direction;
-        if x_bias != 0 {
-            if x_bias > 0 {
-                direction = Direction::Right
-            } else {
-                direction = Direction::Left
-            }
-        } else {
-            if y_bias > 0 {
-                direction = Direction::Down
-            } else {
-                direction = Direction::Up
-            }
+
+        match (x_bias, y_bias) {
+            (x, _) if x > 0 => Direction::Right,
+            (x, _) if x < 0 => Direction::Left,
+            (_, y) if y > 0 => Direction::Down,
+            _ => Direction::Up,
         }
-        direction
     }
 
     fn step_to(&mut self, world: &mut World, next_tile: GridPos) {
@@ -156,35 +145,22 @@ impl Creature {
     }
 
     fn repath_around_obstacle(&mut self, world: &mut World) {
-        if let Some(available_goal) =
-            world.find_nearest_walkable(*self.path.last().unwrap())
+        if let Some(goal) = self.path.last().copied()
+            && let Some(available_goal) = world.find_nearest_walkable(goal)
         {
-            self.find_path(world, available_goal);
+            self.update_path(world, available_goal);
         }
     }
 
-    fn reset_wander_timer(&mut self, rng: &mut ThreadRng) {
-        self.wander_timer =
-            rng.random_range(self.config.min_wander_wait..self.config.max_wander_wait);
-    }
-
-    fn wander_timer_is_complete(&self) -> bool {
-        self.wander_timer <= 0.0
-    }
-
-    fn tick_down_wander_timer(&mut self, delta: f32) {
-        self.wander_timer -= delta;
-    }
-
-    fn find_path(&mut self, world: &World, goal: GridPos) {
+    fn update_path(&mut self, world: &World, goal: GridPos) {
         self.path = find_path(self.position, goal, world).unwrap_or_default();
     }
 
-    fn movement_timer_is_complete(&self) -> bool {
-        self.movement_timer <= 0.0
+    fn calculate_wander_delay(&self) -> f32 {
+        rand::rng().random_range(self.config.min_wander_wait..self.config.max_wander_wait)
     }
 
-    fn tick_down_movement_timer(&mut self, delta: f32) {
-        self.movement_timer -= delta;
+    fn calculate_movement_delay(&self) -> f32 {
+        1.0 / self.config.speed
     }
 }
