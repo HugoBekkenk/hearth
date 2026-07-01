@@ -20,4 +20,11 @@ impl GridPos {
         }
         new_pos
     }
+
+    pub fn offset(&self, x_offset: i32, y_offset: i32) -> GridPos {
+        GridPos {
+            x: self.x + x_offset,
+            y: self.y + y_offset,
+        }
+    }
 }
