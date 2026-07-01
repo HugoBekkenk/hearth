@@ -2,6 +2,8 @@ use crate::game::grid_pos::GridPos;
 use crate::game::tile_content::TileContent;
 use std::collections::HashMap;
 
+const MAX_WALKABLE_SEARCH_RADIUS: i32 = 5;
+
 pub struct World {
     pub width: i32,
     pub height: i32,
@@ -9,19 +11,14 @@ pub struct World {
     pub tiles: HashMap<GridPos, TileContent>,
 }
 
+// public functions
 impl World {
     pub fn new(width: i32, height: i32, tile_size: i32) -> Self {
-        let mut tiles = HashMap::new();
-        for x in 0..width {
-            for y in 0..height {
-                tiles.insert(GridPos { x, y }, TileContent::Empty);
-            }
-        }
         World {
             width,
             height,
             tile_size,
-            tiles,
+            tiles: Self::create_initial_tiles(width, height),
         }
     }
 
@@ -39,18 +36,12 @@ impl World {
     }
 
     pub fn find_nearest_walkable(&self, goal: GridPos) -> Option<GridPos> {
-        for distance in 1..4i32 {
-            for dx in -distance..=distance {
-                let dy = distance - dx.abs();
+        for distance in 1..MAX_WALKABLE_SEARCH_RADIUS {
+            for x_offset in -distance..=distance {
+                let y_offset = distance - x_offset.abs();
                 for candidate in [
-                    GridPos {
-                        x: goal.x + dx,
-                        y: goal.y + dy,
-                    },
-                    GridPos {
-                        x: goal.x + dx,
-                        y: goal.y - dy,
-                    },
+                    goal.offset(x_offset, y_offset),
+                    goal.offset(x_offset, -y_offset),
                 ] {
                     if self.is_walkable(&candidate) {
                         return Some(candidate);
@@ -59,5 +50,18 @@ impl World {
             }
         }
         None
+    }
+}
+
+// Private helpers
+impl World {
+    fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, TileContent> {
+        let mut tiles = HashMap::new();
+        for x in 0..width {
+            for y in 0..height {
+                tiles.insert(GridPos { x, y }, TileContent::Empty);
+            }
+        }
+        tiles
     }
 }
