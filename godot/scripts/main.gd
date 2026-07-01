@@ -27,6 +27,8 @@ func _unhandled_input(event):
 			spawn_creature()
 		if event.keycode == KEY_X and event.pressed:
 			bridge.select_all_creature()
+		if event.keycode == KEY_Z and event.pressed:
+			bridge.deselect_all_creature()
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			bridge.set_creature_target(get_global_mouse_position())
