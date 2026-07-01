@@ -7,17 +7,15 @@ const MAX_WALKABLE_SEARCH_RADIUS: i32 = 5;
 pub struct World {
     pub width: i32,
     pub height: i32,
-    pub tile_size: i32,
     pub tiles: HashMap<GridPos, TileContent>,
 }
 
 // public functions
 impl World {
-    pub fn new(width: i32, height: i32, tile_size: i32) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         World {
             width,
             height,
-            tile_size,
             tiles: Self::create_initial_tiles(width, height),
         }
     }

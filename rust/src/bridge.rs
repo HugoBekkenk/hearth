@@ -4,14 +4,15 @@ use crate::game::grid_pos::GridPos;
 use crate::game::pathfinding::find_path;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
-use godot::global::{randf_range, randi_range};
 use godot::prelude::*;
+use rand::RngExt;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
 struct HearthBridge {
     base: Base<Node>,
     pub world: World,
+    pub tile_size: i32,
     pub creatures: Vec<Creature>,
     pub selected_creatures: Vec<u32>,
     pub next_id: u32,
@@ -23,7 +24,8 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(50, 30, 32),
+            world: World::new(50, 30),
+            tile_size: 32,
             creatures: vec![],
             selected_creatures: vec![],
             next_id: 0,
@@ -41,10 +43,7 @@ impl INode for HearthBridge {
             } else if creature.behavior_state == BehaviorState::Wandering {
                 creature.wander(delta as f32, &self.world)
             } else {
-                creature.movement_state = MovementState::Idle;
-                if !self.selected_creatures.contains(&creature.id) {
-                    creature.behavior_state = BehaviorState::Wandering;
-                }
+                Self::try_return_to_wander(creature, &self.selected_creatures);
             }
         }
     }
@@ -55,14 +54,14 @@ impl INode for HearthBridge {
 impl HearthBridge {
     #[func]
     pub fn spawn_creature(&mut self) -> i64 {
-        let spawn_position = GridPos {
-            x: randi_range(0, self.world.width as i64) as i32,
-            y: randi_range(0, self.world.height as i64) as i32,
-        };
+        let spawn_position = self.generate_spawn_position();
         let current_id = self.next_id;
         if self.world.is_walkable(&spawn_position) {
-            let new_creature =
-                Creature::new(self.next_id, spawn_position, randf_range(3.0, 5.0) as f32);
+            let new_creature = Creature::new(
+                self.next_id,
+                spawn_position,
+                Self::generate_creature_speed(),
+            );
             self.creatures.push(new_creature);
             self.world
                 .tiles
@@ -77,7 +76,7 @@ impl HearthBridge {
 
     #[func]
     pub fn get_creature_position(&mut self, id: u32) -> Vector2 {
-        let tile_size = self.world.tile_size;
+        let tile_size = self.tile_size;
         if let Some(creature) = self.find_creature(id) {
             Self::grid_to_world(&creature.position, tile_size)
         } else {
@@ -89,7 +88,7 @@ impl HearthBridge {
     #[func]
     pub fn select_creature(&mut self, id: u32) {
         if self.selected_creatures.contains(&id) {
-            self.selected_creatures.retain(|&c| c != id);
+            self.deselect_creature(id);
         } else {
             self.selected_creatures.push(id);
         }
@@ -98,17 +97,20 @@ impl HearthBridge {
     #[func]
     pub fn select_all_creature(&mut self) {
         for creature in self.creatures.iter_mut() {
-            if self.selected_creatures.contains(&creature.id) {
-                self.selected_creatures.retain(|&c| c != creature.id);
-            } else {
+            if !self.selected_creatures.contains(&creature.id) {
                 self.selected_creatures.push(creature.id);
             }
         }
     }
 
     #[func]
+    pub fn deselect_all_creature(&mut self) {
+        self.selected_creatures.clear()
+    }
+
+    #[func]
     pub fn set_creature_target(&mut self, target: Vector2) {
-        let grid_target = Self::world_to_grid(target, self.world.tile_size);
+        let grid_target = Self::world_to_grid(target, self.tile_size);
         if self.world.is_walkable(&grid_target) {
             let ids: Vec<u32> = self.selected_creatures.clone();
             let world = &self.world;
@@ -153,13 +155,13 @@ impl HearthBridge {
 
     #[func]
     pub fn get_tile_size(&self) -> i32 {
-        self.world.tile_size
+        self.tile_size
     }
 }
 
 // private functions
 impl HearthBridge {
-    pub(crate) fn find_creature(&mut self, id: u32) -> Option<&mut Creature> {
+    fn find_creature(&mut self, id: u32) -> Option<&mut Creature> {
         self.creatures.iter_mut().find(|c| c.id == id)
     }
 
@@ -176,5 +178,28 @@ impl HearthBridge {
             x: ((pos.x * tile_size) + half) as f32,
             y: ((pos.y * tile_size) + half) as f32,
         }
+    }
+
+    fn generate_spawn_position(&self) -> GridPos {
+        let mut rng = rand::rng();
+        GridPos {
+            x: rng.random_range(0..self.world.width),
+            y: rng.random_range(0..self.world.height),
+        }
+    }
+
+    fn try_return_to_wander(creature: &mut Creature, selected_creatures: &[u32]) {
+        creature.movement_state = MovementState::Idle;
+        if !selected_creatures.contains(&creature.id) {
+            creature.behavior_state = BehaviorState::Wandering;
+        }
+    }
+
+    fn deselect_creature(&mut self, id: u32) {
+        self.selected_creatures.retain(|&c| c != id)
+    }
+
+    fn generate_creature_speed() -> f32 {
+        rand::rng().random_range(3.0..5.0)
     }
 }
