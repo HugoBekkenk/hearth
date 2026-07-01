@@ -2,3 +2,4 @@
 rust/.idea/
 rust/target/
 godot/.godot/
+godot/**/*.import

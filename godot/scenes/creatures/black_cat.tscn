@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bgr7o5705coiw"]
+
+[ext_resource type="PackedScene" uid="uid://kj381sddqji" path="res://scenes/creature.tscn" id="1_xsvwf"]
+
+[node name="Black cat" unique_id=764171489 instance=ExtResource("1_xsvwf")]
+
+[node name="AnimatedSprite2D" parent="." index="0" unique_id=1104613973]
+autoplay = ""
