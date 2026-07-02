@@ -2,11 +2,11 @@ use crate::game::creature::{BehaviorState, Creature, MovementState};
 use crate::game::direction::Direction;
 use crate::game::grid_pos::GridPos;
 use crate::game::pathfinding::find_path;
+use crate::game::terrain_type::TerrainType;
 use crate::game::tile_content::TileContent;
 use crate::game::world::World;
 use godot::prelude::*;
 use rand::RngExt;
-use crate::game::terrain_type::TerrainType;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -25,7 +25,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(50, 30),
+            world: World::new(1000, 600),
             tile_size: 32,
             creatures: vec![],
             selected_creatures: vec![],

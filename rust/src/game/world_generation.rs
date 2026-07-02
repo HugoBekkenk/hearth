@@ -6,7 +6,9 @@ use noise::{NoiseFn, OpenSimplex};
 use std::collections::HashMap;
 
 pub fn generate(width: i32, height: i32, seed: u32) -> HashMap<GridPos, Tile> {
-    let simplex = OpenSimplex::new(seed);
+    let height_simplex = OpenSimplex::new(seed);
+    let biome_simplex = OpenSimplex::new(seed + 1);
+
     let mut map: HashMap<GridPos, Tile> = HashMap::new();
 
     for x in 0..width {
@@ -14,7 +16,14 @@ pub fn generate(width: i32, height: i32, seed: u32) -> HashMap<GridPos, Tile> {
             map.insert(
                 GridPos { x, y },
                 Tile {
-                    terrain: generate_terrain_type(&simplex, x, y, width, height),
+                    terrain: generate_terrain_type(
+                        &height_simplex,
+                        &biome_simplex,
+                        x,
+                        y,
+                        width,
+                        height,
+                    ),
                     content: TileContent::Empty,
                 },
             );
@@ -24,7 +33,8 @@ pub fn generate(width: i32, height: i32, seed: u32) -> HashMap<GridPos, Tile> {
 }
 
 fn generate_terrain_type(
-    simplex: &OpenSimplex,
+    height_simplex: &OpenSimplex,
+    biome_simplex: &OpenSimplex,
     x: i32,
     y: i32,
     width: i32,
@@ -35,19 +45,24 @@ fn generate_terrain_type(
     let distance = (x_offset.powi(2) + y_offset.powi(2)).sqrt();
     let max_distance = ((width as f64 / 2.0).powi(2) + (height as f64 / 2.0).powi(2)).sqrt();
     let normalized_distance = distance / max_distance;
-    let mut height_value = simplex.get([x as f64 * 0.05, y as f64 * 0.05]);
+    let height_scale = 4.0 / width as f64;
+    let biome_scale = 20.0 / width as f64;
+    let mut height_value = height_simplex.get([x as f64 * height_scale, y as f64 * height_scale]);
+    let biome_value = biome_simplex.get([x as f64 * biome_scale, y as f64 * biome_scale]);
     height_value -= normalized_distance * 0.8;
     if height_value <= 0.0 {
         TerrainType::Water
-    } else if height_value < 0.1 {
+    } else if height_value < 0.03 {
         TerrainType::Sand
-    } else if height_value < 0.4 {
-        TerrainType::Grass
-    } else if height_value < 0.6 {
-        TerrainType::Forest
-    } else if height_value < 0.8 {
-        TerrainType::Rock
     } else {
-        TerrainType::Snow
+        if biome_value < 0.05 {
+            TerrainType::Grass
+        } else if biome_value < 0.3 {
+            TerrainType::Forest
+        } else if biome_value < 0.4 {
+            TerrainType::Rock
+        } else {
+            TerrainType::Snow
+        }
     }
 }
