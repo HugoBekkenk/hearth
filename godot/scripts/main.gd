@@ -1,6 +1,7 @@
 extends Node2D
 
 @onready var bridge = $HearthBridge
+@onready var camera = $Camera2D
 var creature_scenes = [
 	preload("res://scenes/creatures/black_cat.tscn"),
 	preload("res://scenes/creatures/ginger_cat.tscn"),
@@ -9,6 +10,8 @@ var creature_scenes = [
 var world_width
 var world_height
 var tile_size
+
+var camera_speed = 5
 
 func _ready() -> void:
 	spawn_creature()
@@ -21,6 +24,14 @@ func _draw():
 		for y in range(world_height):
 			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), get_terrain(x, y), true)
 
+func _process(delta):
+	var direction = Vector2.ZERO
+	if Input.is_key_pressed(KEY_W): direction += Vector2.UP
+	if Input.is_key_pressed(KEY_S): direction += Vector2.DOWN
+	if Input.is_key_pressed(KEY_A): direction += Vector2.LEFT
+	if Input.is_key_pressed(KEY_D): direction += Vector2.RIGHT
+	camera.offset += direction * camera_speed / camera.zoom.x
+
 func _unhandled_input(event):
 	if event is InputEventKey:
 		if event.keycode == KEY_C and event.pressed:
@@ -29,9 +40,32 @@ func _unhandled_input(event):
 			bridge.select_all_creature()
 		if event.keycode == KEY_Z and event.pressed:
 			bridge.deselect_all_creature()
+		
+		#if event.keycode == KEY_W:
+			#camera.offset += (Vector2.UP * camera_speed) / camera.zoom.x
+		#
+		#if event.keycode == KEY_S:
+			#camera.offset += (Vector2.DOWN * camera_speed) / camera.zoom.x
+		#
+		#if event.keycode == KEY_A:
+			#camera.offset += (Vector2.LEFT * camera_speed) / camera.zoom.x
+		#
+		#if event.keycode == KEY_D:
+			#camera.offset += (Vector2.RIGHT * camera_speed) / camera.zoom.x
+
+		
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			bridge.set_creature_target(get_global_mouse_position())
+		
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var new_zoom = camera.zoom - Vector2(0.1, 0.1)
+			camera.zoom = new_zoom.clamp(Vector2(0.1, 0.1), Vector2(5.0, 5.0))
+		
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			var new_zoom = camera.zoom + Vector2(0.1, 0.1)
+			camera.zoom = new_zoom.clamp(Vector2(0.1, 0.1), Vector2(5.0, 5.0))
+		
 
 func spawn_creature():
 	var creature_id = bridge.spawn_creature()

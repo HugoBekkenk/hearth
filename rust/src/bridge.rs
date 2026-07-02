@@ -25,7 +25,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(100, 60),
+            world: World::new(1000, 1000),
             tile_size: 32,
             creatures: vec![],
             selected_creatures: vec![],
