@@ -64,8 +64,7 @@ impl HearthBridge {
             );
             self.creatures.push(new_creature);
             self.world
-                .tiles
-                .insert(spawn_position, TileContent::Creature(current_id));
+                .try_occupy_tile(&spawn_position, TileContent::Creature(current_id));
             self.next_id += 1;
             current_id as i64
         } else {

@@ -3,6 +3,8 @@ pub mod direction;
 pub mod grid_pos;
 pub mod node;
 pub mod pathfinding;
+pub mod terrain_type;
+pub mod tile;
 pub mod tile_content;
 pub mod timer;
 pub mod vec2;

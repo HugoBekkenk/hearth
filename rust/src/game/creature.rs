@@ -113,17 +113,6 @@ impl Creature {
         }
     }
 
-    fn vacant_tile(&self, world: &mut World) {
-        world.tiles.insert(self.position, TileContent::Empty);
-    }
-
-    fn occupy_tile(&mut self, world: &mut World, next_tile: GridPos) {
-        self.position = next_tile;
-        world
-            .tiles
-            .insert(next_tile, TileContent::Creature(self.id));
-    }
-
     fn direction_to(&self, next_tile: GridPos) -> Direction {
         let x_bias = next_tile.x - self.position.x;
         let y_bias = next_tile.y - self.position.y;
@@ -136,10 +125,11 @@ impl Creature {
         }
     }
 
-    fn step_to(&mut self, world: &mut World, next_tile: GridPos) {
-        let direction = self.direction_to(next_tile);
-        self.vacant_tile(world);
-        self.occupy_tile(world, next_tile);
+    fn step_to(&mut self, world: &mut World, next_tile_pos: GridPos) {
+        let direction = self.direction_to(next_tile_pos);
+        world.try_vacant_tile(&self.position);
+        world.try_occupy_tile(&next_tile_pos, TileContent::Creature(self.id));
+        self.position = next_tile_pos;
         self.movement_state = MovementState::Moving(direction);
         self.path.remove(0);
     }

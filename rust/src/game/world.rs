@@ -1,4 +1,6 @@
 use crate::game::grid_pos::GridPos;
+use crate::game::terrain_type::TerrainType;
+use crate::game::tile::Tile;
 use crate::game::tile_content::TileContent;
 use std::collections::HashMap;
 
@@ -7,7 +9,7 @@ const MAX_WALKABLE_SEARCH_RADIUS: i32 = 5;
 pub struct World {
     pub width: i32,
     pub height: i32,
-    pub tiles: HashMap<GridPos, TileContent>,
+    pub tiles: HashMap<GridPos, Tile>,
 }
 
 // public functions
@@ -22,7 +24,7 @@ impl World {
 
     pub fn is_walkable(&self, grid_pos: &GridPos) -> bool {
         if let Some(tile) = self.tiles.get(grid_pos)
-            && *tile == TileContent::Empty
+            && tile.is_passable()
         {
             return true;
         }
@@ -49,15 +51,33 @@ impl World {
         }
         None
     }
+
+    pub fn try_vacant_tile(&mut self, position: &GridPos) {
+        if let Some(tile) = self.tiles.get_mut(position) {
+            tile.empty();
+        }
+    }
+
+    pub fn try_occupy_tile(&mut self, position: &GridPos, content: TileContent) {
+        if let Some(next_tile) = self.tiles.get_mut(position) {
+            next_tile.set_content(content);
+        }
+    }
 }
 
 // Private helpers
 impl World {
-    fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, TileContent> {
+    fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, Tile> {
         let mut tiles = HashMap::new();
         for x in 0..width {
             for y in 0..height {
-                tiles.insert(GridPos { x, y }, TileContent::Empty);
+                tiles.insert(
+                    GridPos { x, y },
+                    Tile {
+                        terrain: TerrainType::Grass,
+                        content: TileContent::Empty,
+                    },
+                );
             }
         }
         tiles
