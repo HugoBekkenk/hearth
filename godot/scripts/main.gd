@@ -19,7 +19,7 @@ func _ready() -> void:
 func _draw():
 	for x in range(world_width):
 		for y in range(world_height):
-			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), Color.AQUAMARINE, false)
+			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), get_terrain(x, y), true)
 
 func _unhandled_input(event):
 	if event is InputEventKey:
@@ -41,3 +41,20 @@ func spawn_creature():
 		creature.bridge = bridge
 		creature.position = bridge.get_creature_position(creature_id)
 		add_child(creature)
+
+func get_terrain(x, y):
+	var terrain_id = bridge.get_terrain_type(x, y)
+	if terrain_id == 0:
+		return Color.AQUA
+	elif terrain_id == 1:
+		return Color.BEIGE
+	elif terrain_id == 2:
+		return Color.PALE_GREEN
+	elif terrain_id == 3:
+		return Color.DARK_GREEN
+	elif terrain_id == 4:
+		return Color.GRAY
+	elif terrain_id == 5:
+		return Color.WHITE
+	else:
+		return Color.MAGENTA

@@ -1,7 +1,7 @@
 use crate::game::grid_pos::GridPos;
-use crate::game::terrain_type::TerrainType;
 use crate::game::tile::Tile;
 use crate::game::tile_content::TileContent;
+use crate::game::world_generation;
 use std::collections::HashMap;
 
 const MAX_WALKABLE_SEARCH_RADIUS: i32 = 5;
@@ -18,7 +18,7 @@ impl World {
         World {
             width,
             height,
-            tiles: Self::create_initial_tiles(width, height),
+            tiles: world_generation::generate(width, height, 12345),
         }
     }
 
@@ -66,20 +66,20 @@ impl World {
 }
 
 // Private helpers
-impl World {
-    fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, Tile> {
-        let mut tiles = HashMap::new();
-        for x in 0..width {
-            for y in 0..height {
-                tiles.insert(
-                    GridPos { x, y },
-                    Tile {
-                        terrain: TerrainType::Grass,
-                        content: TileContent::Empty,
-                    },
-                );
-            }
-        }
-        tiles
-    }
-}
+// impl World {
+//     fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, Tile> {
+//         let mut tiles = HashMap::new();
+//         for x in 0..width {
+//             for y in 0..height {
+//                 tiles.insert(
+//                     GridPos { x, y },
+//                     Tile {
+//                         terrain: TerrainType::Grass,
+//                         content: TileContent::Empty,
+//                     },
+//                 );
+//             }
+//         }
+//         tiles
+//     }
+// }

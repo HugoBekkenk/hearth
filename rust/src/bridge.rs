@@ -6,6 +6,7 @@ use crate::game::tile_content::TileContent;
 use crate::game::world::World;
 use godot::prelude::*;
 use rand::RngExt;
+use crate::game::terrain_type::TerrainType;
 
 #[derive(GodotClass)]
 #[class(base=Node)]
@@ -155,6 +156,23 @@ impl HearthBridge {
     #[func]
     pub fn get_tile_size(&self) -> i32 {
         self.tile_size
+    }
+
+    #[func]
+    pub fn get_terrain_type(&self, x: i32, y: i32) -> i32 {
+        let pos = GridPos { x, y };
+        if let Some(tile) = self.world.tiles.get(&pos) {
+            match tile.terrain {
+                TerrainType::Water => 0,
+                TerrainType::Sand => 1,
+                TerrainType::Grass => 2,
+                TerrainType::Forest => 3,
+                TerrainType::Rock => 4,
+                TerrainType::Snow => 5,
+            }
+        } else {
+            -1
+        }
     }
 }
 

@@ -4,6 +4,6 @@ pub enum TerrainType {
     Grass,
     Forest,
     Rock,
-    Desert,
+    Sand,
     Snow,
 }
