@@ -8,5 +8,5 @@ script = ExtResource("1_0wfyh")
 [node name="HearthBridge" type="HearthBridge" parent="." unique_id=1461918891]
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=220030513]
-position = Vector2(18992, 10432)
-zoom = Vector2(0.05, 0.05)
+position = Vector2(1944, 1112)
+zoom = Vector2(0.5, 0.5)

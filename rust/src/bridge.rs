@@ -25,7 +25,7 @@ impl INode for HearthBridge {
     fn init(base: Base<Node>) -> Self {
         Self {
             base,
-            world: World::new(1000, 600),
+            world: World::new(100, 60),
             tile_size: 32,
             creatures: vec![],
             selected_creatures: vec![],
@@ -55,23 +55,24 @@ impl INode for HearthBridge {
 impl HearthBridge {
     #[func]
     pub fn spawn_creature(&mut self) -> i64 {
-        let spawn_position = self.generate_spawn_position();
+        let spawn_position = match self.generate_spawn_position() {
+            Some(pos) => pos,
+            None => {
+                godot_warn!("No walkable tiles");
+                return -1;
+            }
+        };
         let current_id = self.next_id;
-        if self.world.is_walkable(&spawn_position) {
-            let new_creature = Creature::new(
-                self.next_id,
-                spawn_position,
-                Self::generate_creature_speed(),
-            );
-            self.creatures.push(new_creature);
-            self.world
-                .try_occupy_tile(&spawn_position, TileContent::Creature(current_id));
-            self.next_id += 1;
-            current_id as i64
-        } else {
-            godot_warn!("Spawn position is already taken");
-            -1
-        }
+        let new_creature = Creature::new(
+            self.next_id,
+            spawn_position,
+            Self::generate_creature_speed(),
+        );
+        self.creatures.push(new_creature);
+        self.world
+            .try_occupy_tile(&spawn_position, TileContent::Creature(current_id));
+        self.next_id += 1;
+        current_id as i64
     }
 
     #[func]
@@ -197,12 +198,13 @@ impl HearthBridge {
         }
     }
 
-    fn generate_spawn_position(&self) -> GridPos {
+    fn generate_spawn_position(&self) -> Option<GridPos> {
         let mut rng = rand::rng();
-        GridPos {
-            x: rng.random_range(0..self.world.width),
-            y: rng.random_range(0..self.world.height),
+        let walkable_tiles = self.world.walkable_tiles();
+        if walkable_tiles.is_empty() {
+            return None;
         }
+        Some(walkable_tiles[rng.random_range(0..walkable_tiles.len())])
     }
 
     fn try_return_to_wander(creature: &mut Creature, selected_creatures: &[u32]) {

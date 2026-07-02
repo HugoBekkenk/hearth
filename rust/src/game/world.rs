@@ -2,6 +2,7 @@ use crate::game::grid_pos::GridPos;
 use crate::game::tile::Tile;
 use crate::game::tile_content::TileContent;
 use crate::game::world_generation;
+use rand::RngExt;
 use std::collections::HashMap;
 
 const MAX_WALKABLE_SEARCH_RADIUS: i32 = 5;
@@ -15,10 +16,11 @@ pub struct World {
 // public functions
 impl World {
     pub fn new(width: i32, height: i32) -> Self {
+        let mut rng = rand::rng();
         World {
             width,
             height,
-            tiles: world_generation::generate(width, height, 12345),
+            tiles: world_generation::generate(width, height, rng.random_range(1..10000)),
         }
     }
 
@@ -29,6 +31,14 @@ impl World {
             return true;
         }
         false
+    }
+
+    pub fn walkable_tiles(&self) -> Vec<GridPos> {
+        self.tiles
+            .iter()
+            .filter(|(_, tile)| tile.is_passable())
+            .map(|(pos, _)| *pos)
+            .collect()
     }
 
     pub fn is_in_bound(&self, grid_pos: &GridPos) -> bool {
@@ -64,22 +74,3 @@ impl World {
         }
     }
 }
-
-// Private helpers
-// impl World {
-//     fn create_initial_tiles(width: i32, height: i32) -> HashMap<GridPos, Tile> {
-//         let mut tiles = HashMap::new();
-//         for x in 0..width {
-//             for y in 0..height {
-//                 tiles.insert(
-//                     GridPos { x, y },
-//                     Tile {
-//                         terrain: TerrainType::Grass,
-//                         content: TileContent::Empty,
-//                     },
-//                 );
-//             }
-//         }
-//         tiles
-//     }
-// }
