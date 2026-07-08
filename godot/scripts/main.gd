@@ -2,6 +2,7 @@ extends Node2D
 
 @onready var bridge = $HearthBridge
 @onready var camera = $Camera2D
+@onready var terrain_sprite = $TerrainSprite
 var creature_scenes = [
 	preload("res://scenes/creatures/black_cat.tscn"),
 	preload("res://scenes/creatures/ginger_cat.tscn"),
@@ -18,13 +19,20 @@ func _ready() -> void:
 	world_width = bridge.get_world_width()
 	world_height = bridge.get_world_height()
 	tile_size = bridge.get_tile_size()
+	
+	var terrain_ids = bridge.get_terrain_ids()
+	var image = Image.create(world_width, world_height, false, Image.FORMAT_RGB8)
+	for y in range(world_height):
+		for x in range(world_width):
+			var id = terrain_ids[y * world_width + x]
+			image.set_pixel(x, y, get_terrain_color(id))
+	var texture = ImageTexture.create_from_image(image)
+	terrain_sprite.texture = texture
+	terrain_sprite.centered = false
+	terrain_sprite.scale = Vector2(tile_size, tile_size)
+	terrain_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
-func _draw():
-	for x in range(world_width):
-		for y in range(world_height):
-			draw_rect(Rect2(x * tile_size, y * tile_size, tile_size, tile_size), get_terrain(x, y), true)
-
-func _process(delta):
+func _process(_delta):
 	var direction = Vector2.ZERO
 	if Input.is_key_pressed(KEY_W): direction += Vector2.UP
 	if Input.is_key_pressed(KEY_S): direction += Vector2.DOWN
@@ -40,19 +48,6 @@ func _unhandled_input(event):
 			bridge.select_all_creature()
 		if event.keycode == KEY_Z and event.pressed:
 			bridge.deselect_all_creature()
-		
-		#if event.keycode == KEY_W:
-			#camera.offset += (Vector2.UP * camera_speed) / camera.zoom.x
-		#
-		#if event.keycode == KEY_S:
-			#camera.offset += (Vector2.DOWN * camera_speed) / camera.zoom.x
-		#
-		#if event.keycode == KEY_A:
-			#camera.offset += (Vector2.LEFT * camera_speed) / camera.zoom.x
-		#
-		#if event.keycode == KEY_D:
-			#camera.offset += (Vector2.RIGHT * camera_speed) / camera.zoom.x
-
 		
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -76,8 +71,7 @@ func spawn_creature():
 		creature.position = bridge.get_creature_position(creature_id)
 		add_child(creature)
 
-func get_terrain(x, y):
-	var terrain_id = bridge.get_terrain_type(x, y)
+func get_terrain_color(terrain_id):
 	if terrain_id == 0:
 		return Color.AQUA
 	elif terrain_id == 1:
@@ -92,3 +86,4 @@ func get_terrain(x, y):
 		return Color.WHITE
 	else:
 		return Color.MAGENTA
+	

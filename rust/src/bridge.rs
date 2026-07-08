@@ -38,7 +38,16 @@ impl INode for HearthBridge {
     }
 
     fn process(&mut self, delta: f64) {
+        let mut repath_budget = 5; // max A* calls per frame
         for creature in self.creatures.iter_mut() {
+            if let Some(target) = creature.target
+                && repath_budget > 0
+            {
+                creature.path =
+                    find_path(creature.position, target, &self.world).unwrap_or_default();
+                creature.target = None;
+                repath_budget -= 1;
+            }
             if !creature.path.is_empty() {
                 creature.move_towards_target(delta as f32, &mut self.world)
             } else if creature.behavior_state == BehaviorState::Wandering {
@@ -114,12 +123,13 @@ impl HearthBridge {
         let grid_target = Self::world_to_grid(target, self.tile_size);
         if self.world.is_walkable(&grid_target) {
             let ids: Vec<u32> = self.selected_creatures.clone();
-            let world = &self.world;
+            // let world = &self.world;
             let creatures = &mut self.creatures;
             for creature_id in ids {
                 if let Some(creature) = creatures.iter_mut().find(|c| c.id == creature_id) {
-                    creature.path =
-                        find_path(creature.position, grid_target, world).unwrap_or_default();
+                    creature.target = Some(grid_target);
+                    // creature.path =
+                    //     find_path(creature.position, grid_target, world).unwrap_or_default();
                     creature.behavior_state = BehaviorState::BeingOrdered;
                 }
             }
@@ -174,6 +184,17 @@ impl HearthBridge {
         } else {
             -1
         }
+    }
+
+    #[func]
+    pub fn get_terrain_ids(&self) -> PackedByteArray {
+        let mut terrain: PackedByteArray = PackedByteArray::new();
+        for y in 0..self.world.height {
+            for x in 0..self.world.width {
+                terrain.push(self.get_terrain_type(x, y) as u8)
+            }
+        }
+        terrain
     }
 }
 

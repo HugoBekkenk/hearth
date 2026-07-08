@@ -9,3 +9,5 @@ script = ExtResource("1_0wfyh")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=220030513]
 position = Vector2(8984, 6112)
+
+[node name="TerrainSprite" type="Sprite2D" parent="." unique_id=459640498]

@@ -10,9 +10,11 @@ use rand::prelude::ThreadRng;
 pub struct Creature {
     pub id: u32,
     pub position: GridPos,
+    pub target: Option<GridPos>,
     pub path: Vec<GridPos>,
     pub movement_timer: Timer,
     pub wander_timer: Timer,
+    pub repath_timer: Timer,
     pub behavior_state: BehaviorState,
     pub movement_state: MovementState,
     pub config: CreatureConfig,
@@ -43,9 +45,11 @@ impl Creature {
         Creature {
             id,
             position,
+            target: None,
             path: vec![],
             movement_timer: Timer::new(0.0),
             wander_timer: Timer::new(0.0),
+            repath_timer: Timer::new(0.0),
             behavior_state: BehaviorState::Wandering,
             movement_state: MovementState::Idle,
             config: CreatureConfig {
@@ -70,11 +74,15 @@ impl Creature {
 
     pub fn move_towards_target(&mut self, delta: f32, world: &mut World) {
         self.movement_timer.tick_down(delta);
+        self.repath_timer.tick_down(delta);
         if self.movement_timer.is_complete()
             && let Some(&next_tile) = self.path.first()
         {
             if !world.is_walkable(&next_tile) {
-                self.repath_around_obstacle(world);
+                if self.repath_timer.is_complete() {
+                    self.repath_around_obstacle(world);
+                    self.repath_timer.reset(1.0);
+                }
             } else {
                 self.step_to(world, next_tile);
             }
@@ -134,11 +142,11 @@ impl Creature {
         self.path.remove(0);
     }
 
-    fn repath_around_obstacle(&mut self, world: &mut World) {
+    fn repath_around_obstacle(&mut self, world: &World) {
         if let Some(goal) = self.path.last().copied()
             && let Some(available_goal) = world.find_nearest_walkable(goal)
         {
-            self.update_path(world, available_goal);
+            self.target = Some(available_goal);
         }
     }
 
